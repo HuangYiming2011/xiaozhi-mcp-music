@@ -10,8 +10,22 @@ COPY . .
 # 安装依赖（与项目 README 一致）
 RUN pip install --no-cache-dir -r requirements-dev.txt
 
-# 生成桥接配置（真实密钥一律走 Railway Variables 注入，不要提交 .env）
-RUN cp mcp_config.example.json mcp_config.json 2>/dev/null || true
+# 生成 Linux 版 mcp_config.json（仓库自带的 example 写死 Windows 虚拟环境路径
+# .venv\Scripts\python.exe，容器里不存在；这里改为用系统 python 启动音乐 MCP）
+RUN printf '%s\n' \
+    '{' \
+    '  "mcpServers": {' \
+    '    "xiaozhi-music": {' \
+    '      "type": "stdio",' \
+    '      "command": "python",' \
+    '      "args": ["-m", "music_mcp"],' \
+    '      "env": {' \
+    '        "MUSIC_SOURCES": "kuwo,netease,migu,kugou",' \
+    '        "LOG_LEVEL": "INFO"' \
+    '      }' \
+    '    }' \
+    '  }' \
+    '}' > mcp_config.json
 
 # 常驻连接小智官方控制台的 MCP 接入点，断线自动重连
 CMD ["python", "bridge.py"]
